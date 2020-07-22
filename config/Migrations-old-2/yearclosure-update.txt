@@ -1,0 +1,26 @@
+CREATE TABLE public.year_closures
+(
+    id serial GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9876543234 CACHE 1 ),
+    financial_year character varying(100),
+    journal_type_id integer,
+    journal_sub_type_id numeric DEFAULT 0,
+    amount numeric DEFAULT 0,
+    status integer DEFAULT 1,
+    is_active integer DEFAULT 1,
+    created_at timestamp without time zone,
+    created_by integer,
+    modified_at timestamp without time zone,
+    modified_by integer,
+    financial_year_next character varying(100),
+    PRIMARY KEY (id)
+)
+WITH (
+    OIDS = FALSE
+);
+
+ALTER TABLE public.year_closures
+    OWNER to postgres;
+
+COMMENT ON COLUMN public.year_closures.status
+    IS '1-unaudited
+2-audited';

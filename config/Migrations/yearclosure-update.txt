@@ -1,0 +1,194 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 10.11
+-- Dumped by pg_dump version 10.11
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: year_closures; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.year_closures (
+    id integer NOT NULL,
+    financial_year character varying(100),
+    journal_type_id integer,
+    journal_type_sub_id integer DEFAULT 0,
+    amount numeric(10,2) DEFAULT 0,
+    status integer DEFAULT 1,
+    is_active integer DEFAULT 1,
+    created_at timestamp without time zone,
+    created_by integer,
+    modified_at timestamp without time zone,
+    modified_by integer,
+    financial_year_next character varying(100),
+    ledger_id integer,
+    journal_id integer
+);
+
+
+ALTER TABLE public.year_closures OWNER TO postgres;
+
+--
+-- Name: year_closures_d_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.year_closures_d_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.year_closures_d_seq OWNER TO postgres;
+
+--
+-- Name: year_closures_d_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.year_closures_d_seq OWNED BY public.year_closures.id;
+
+
+--
+-- Name: year_closures id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.year_closures ALTER COLUMN id SET DEFAULT nextval('public.year_closures_d_seq'::regclass);
+
+
+--
+-- Name: year_closures year_closures_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.year_closures
+    ADD CONSTRAINT year_closures_pkey PRIMARY KEY (id);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+UPDATE public.ledgers
+SET audit_status=0;
+UPDATE public.cash_ledgers
+SET audit_status=0;
+
+//journal_temp to journal
+CREATE FUNCTION public.journal_temp_to_journal()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF 
+AS $BODY$                           
+                                BEGIN
+
+                                    IF(NEW.is_active = 1 ) THEN
+                                        UPDATE journals
+                                        SET journal_types_id=NEW.journal_types_id, 
+
+                                             journal_type_sub_id=NEW.journal_type_sub_id,
+
+                                             t_desc=NEW.t_desc,
+
+                                             t_amount=NEW.t_amount,         
+
+                                             debit=NEW.debit,
+
+                                             credit=NEW.credit,
+
+                                             trans_type=NEW.trans_type,
+
+                                             trans_type_bank=NEW.trans_type_bank
+                                            
+                                            WHERE id=NEW.journal_id;
+                                            
+                                        UPDATE ledgers
+                                        SET journal_type_id=NEW.journal_types_id, 
+
+                                             journal_type_sub_id=NEW.journal_type_sub_id,
+
+                                             t_desc=NEW.t_desc,
+
+                                             amount=NEW.t_amount,         
+
+                                             debit=NEW.debit,
+
+                                             credit=NEW.credit,
+
+                                             trans_type=NEW.trans_type,
+
+                                             trans_type_bank=NEW.trans_type_bank
+                                            
+                                            WHERE journal_id=NEW.journal_id;
+                                            
+                                            DELETE FROM journal_temps
+                                            WHERE id=NEW.id;
+                                  END IF;
+                                RETURN NEW;
+
+                                END;
+                                $BODY$;
+
+ALTER FUNCTION public.journal_temp_to_journal()
+    OWNER TO postgres;
+    
+CREATE TRIGGER journal_temp_to_journal
+    AFTER UPDATE 
+    ON public.journal_temps
+    FOR EACH ROW
+    EXECUTE PROCEDURE public.journal_temp_to_journal();
+
+
+UPDATE public.roles
+    SET name='Propraitorship'
+    WHERE id=5;
+UPDATE public.roles
+    SET name='Individual'
+    WHERE id=4;
+UPDATE public.roles
+    SET name='Partnership'
+    WHERE id=3;
+UPDATE public.roles
+    SET name='Company'
+    WHERE id=2;
+
+
+INSERT INTO public.journal_types(id,
+    type_name, is_active, created_by, created_on, modified_by, modified_on, is_credit, is_debit, journal_type_subs_exists, hoa_type)
+    VALUES (1,'P/L Accounts', 1, 1, '2019-03-30 20:14:00', 1, '2019-03-30 20:14:00', 1, 0, 0, 4);
+
+INSERT INTO public.journal_types(id,
+    type_name, is_active, created_by, created_on, modified_by, modified_on, is_credit, is_debit, journal_type_subs_exists, hoa_type)
+    VALUES (2,'Reserves & Surpluse', 1, 1, '2019-03-30 20:14:00', 1, '2019-03-30 20:14:00', 1, 0, 0, 4);
+
+
+INSERT INTO public.journal_types(id,
+    type_name, is_active, created_by, created_on, modified_by, modified_on, is_credit, is_debit, journal_type_subs_exists, hoa_type)
+    VALUES (3,'Other current assets', 1, 1, '2019-03-30 20:14:00', 1, '2019-03-30 20:14:00', 1, 0, 0, 2);
+
+INSERT INTO public.journal_types(id,
+    type_name, is_active, created_by, created_on, modified_by, modified_on, is_credit, is_debit, journal_type_subs_exists, hoa_type)
+    VALUES (4,'Duties and Taxes', 1, 1, '2019-03-30 20:14:00', 1, '2019-03-30 20:14:00', 1, 0, 0, 2);
+
+INSERT INTO public.journal_types(id,
+    type_name, is_active, created_by, created_on, modified_by, modified_on, is_credit, is_debit, journal_type_subs_exists, hoa_type)
+    VALUES (5,'Loans and Advances', 1, 1, '2019-03-30 20:14:00', 1, '2019-03-30 20:14:00', 1, 0, 0, 2);
+
+    
